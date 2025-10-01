@@ -9,6 +9,12 @@
     <h1>Test WebSocket Market Service</h1>
     
     <div>
+        <label for="jwtToken">JWT Token:</label>
+        <input type="text" id="jwtToken" placeholder="Collez votre JWT ici" style="width: 400px;">
+    </div>
+    <br>
+
+    <div>
         <button onclick="connect()">Se connecter</button>
         <button onclick="disconnect()">Se déconnecter</button>
         <button onclick="subscribeToAll()">S'abonner à tous</button>
@@ -30,48 +36,58 @@
         }
         
         function connect() {
-            const socket = new SockJS('http://localhost:8082/ws/market');
+            const token = document.getElementById('jwtToken').value.trim();
+            if (!token) {
+                log("⚠️ Aucun JWT fourni !");
+                return;
+            }
+
+            const socket = new WebSocket('ws://localhost:8080/ws/market'); 
             stompClient = Stomp.over(socket);
             
-            stompClient.connect({}, function(frame) {
-                log('Connecté: ' + frame);
-            }, function(error) {
-                log('Erreur de connexion: ' + error);
-            });
+            stompClient.connect(
+                { Authorization: "Bearer " + token }, // headers envoyés
+                function(frame) {
+                    log('✅ Connecté: ' + frame);
+                },
+                function(error) {
+                    log('❌ Erreur de connexion: ' + error);
+                }
+            );
         }
         
         function disconnect() {
             if (stompClient !== null) {
                 stompClient.disconnect();
-                log('Déconnecté');
+                log('🔌 Déconnecté');
             }
         }
         
         function subscribeToAll() {
             if (stompClient && stompClient.connected) {
                 stompClient.subscribe('/topic/market/all', function(message) {
-                    log('Message reçu (all): ' + message.body);
+                    log('📩 Message reçu (all): ' + message.body);
                 });
-                log('Abonné à /topic/market/all');
+                log('📡 Abonné à /topic/market/all');
             } else {
-                log('Pas connecté!');
+                log('⚠️ Pas connecté!');
             }
         }
         
         function subscribeToSymbol(symbol) {
             if (stompClient && stompClient.connected) {
                 stompClient.subscribe('/topic/market/' + symbol, function(message) {
-                    log('Message reçu (' + symbol + '): ' + message.body);
+                    log('📩 Message reçu (' + symbol + '): ' + message.body);
                 });
-                log('Abonné à /topic/market/' + symbol);
+                log('📡 Abonné à /topic/market/' + symbol);
                 
-                // Envoyer aussi une demande d'abonnement
+                // Envoie aussi une demande d'abonnement côté backend
                 stompClient.send('/app/market/subscribe', {}, JSON.stringify({
                     action: 'subscribe',
                     symbols: [symbol]
                 }));
             } else {
-                log('Pas connecté!');
+                log('⚠️ Pas connecté!');
             }
         }
     </script>

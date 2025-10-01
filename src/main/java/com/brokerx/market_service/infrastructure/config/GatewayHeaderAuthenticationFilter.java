@@ -88,7 +88,9 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
         
         // don't filter public paths
         return path.startsWith("/v3/api-docs") ||
-               path.startsWith("/swagger-ui");
+               path.startsWith("/swagger-ui") ||
+               path.startsWith("/ws/market") ||  // Exclure tous les endpoints WebSocket/SockJS
+               path.startsWith("/topic/market");
     }
 
     private boolean validateSignature(String signature, String userId, String email, String role) {

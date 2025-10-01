@@ -30,11 +30,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
         // WebSocket endpoint with SockJS support for compatibility
         registry.addEndpoint("/ws/market")
-                .setAllowedOriginPatterns("*")
-                .withSockJS();
-
-        // Native WebSocket endpoint
-        registry.addEndpoint("/ws/market")
                 .setAllowedOriginPatterns("*");
     }
 }
