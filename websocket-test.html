@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test - Market Service</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+    <h1>Test WebSocket Market Service</h1>
+    
+    <div>
+        <button onclick="connect()">Se connecter</button>
+        <button onclick="disconnect()">Se déconnecter</button>
+        <button onclick="subscribeToAll()">S'abonner à tous</button>
+        <button onclick="subscribeToSymbol('AAPL')">S'abonner à AAPL</button>
+    </div>
+    
+    <div>
+        <h3>Logs:</h3>
+        <div id="logs" style="border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px;"></div>
+    </div>
+
+    <script>
+        let stompClient = null;
+        
+        function log(message) {
+            const logs = document.getElementById('logs');
+            logs.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        function connect() {
+            const socket = new SockJS('http://localhost:8082/ws/market');
+            stompClient = Stomp.over(socket);
+            
+            stompClient.connect({}, function(frame) {
+                log('Connecté: ' + frame);
+            }, function(error) {
+                log('Erreur de connexion: ' + error);
+            });
+        }
+        
+        function disconnect() {
+            if (stompClient !== null) {
+                stompClient.disconnect();
+                log('Déconnecté');
+            }
+        }
+        
+        function subscribeToAll() {
+            if (stompClient && stompClient.connected) {
+                stompClient.subscribe('/topic/market/all', function(message) {
+                    log('Message reçu (all): ' + message.body);
+                });
+                log('Abonné à /topic/market/all');
+            } else {
+                log('Pas connecté!');
+            }
+        }
+        
+        function subscribeToSymbol(symbol) {
+            if (stompClient && stompClient.connected) {
+                stompClient.subscribe('/topic/market/' + symbol, function(message) {
+                    log('Message reçu (' + symbol + '): ' + message.body);
+                });
+                log('Abonné à /topic/market/' + symbol);
+                
+                // Envoyer aussi une demande d'abonnement
+                stompClient.send('/app/market/subscribe', {}, JSON.stringify({
+                    action: 'subscribe',
+                    symbols: [symbol]
+                }));
+            } else {
+                log('Pas connecté!');
+            }
+        }
+    </script>
+</body>
+</html>

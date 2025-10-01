@@ -1,0 +1,42 @@
+[
+  {
+    "symbol": "AAPL",
+    "lastPrice": 172.50,
+    "bid": 172.45,
+    "ask": 172.55,
+    "volume": 1523400,
+    "timestamp": "2025-09-28T20:15:00Z"
+  },
+  {
+    "symbol": "TSLA",
+    "lastPrice": 245.10,
+    "bid": 245.00,
+    "ask": 245.20,
+    "volume": 984000,
+    "timestamp": "2025-09-28T20:15:00Z"
+  },
+  {
+    "symbol": "GOOG",
+    "lastPrice": 2850.75,
+    "bid": 2850.60,
+    "ask": 2850.90,
+    "volume": 456700,
+    "timestamp": "2025-09-28T20:15:00Z"
+  },
+  {
+    "symbol": "AMZN",
+    "lastPrice": 3345.20,
+    "bid": 3345.00,
+    "ask": 3345.40,
+    "volume": 1235000,
+    "timestamp": "2025-09-28T20:15:00Z"
+  },
+  {
+    "symbol": "MSFT",
+    "lastPrice": 299.80,
+    "bid": 299.70,
+    "ask": 299.90,
+    "volume": 2210000,
+    "timestamp": "2025-09-28T20:15:00Z"
+  }
+]
