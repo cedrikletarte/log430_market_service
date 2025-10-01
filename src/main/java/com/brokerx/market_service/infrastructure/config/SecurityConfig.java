@@ -39,7 +39,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/market/**").authenticated()
                         // Authenticated access to WebSocket endpoint
                         .requestMatchers("/ws/market/**").permitAll()
-                        .requestMatchers("/topic/market/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
