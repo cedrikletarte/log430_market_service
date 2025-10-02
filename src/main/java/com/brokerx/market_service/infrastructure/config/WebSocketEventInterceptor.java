@@ -94,7 +94,6 @@ public class WebSocketEventInterceptor implements WebSocketMessageBrokerConfigur
     private boolean handleAuthentication(StompHeaderAccessor accessor) {
         try {
             String authToken = accessor.getFirstNativeHeader("Authorization");
-            System.out.println("Auth Token reçu: " + authToken);
             
             if (authToken == null || !authToken.startsWith("Bearer ")) {
                 log.warn("Missing or invalid Authorization header");
@@ -102,8 +101,6 @@ public class WebSocketEventInterceptor implements WebSocketMessageBrokerConfigur
             }
 
             String token = authToken.substring(7);
-
-            System.out.println("Token reçu: " + token);
             
             byte[] keyBytes = java.util.Base64.getDecoder().decode(jwtSecret);
             SecretKey key = Keys.hmacShaKeyFor(keyBytes);

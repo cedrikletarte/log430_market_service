@@ -66,6 +66,7 @@ public class MarketDataSimulationService {
             for (Map<String, Object> data : initialData) {
                 MarketData marketData = MarketData.builder()
                         .symbol((String) data.get("symbol"))
+                        .name((String) data.get("name"))
                         .lastPrice(new BigDecimal(data.get("lastPrice").toString()))
                         .bid(new BigDecimal(data.get("bid").toString()))
                         .ask(new BigDecimal(data.get("ask").toString()))

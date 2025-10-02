@@ -1,6 +1,7 @@
 [
   {
     "symbol": "AAPL",
+    "name": "Apple Inc.",
     "lastPrice": 172.50,
     "bid": 172.45,
     "ask": 172.55,
@@ -9,6 +10,7 @@
   },
   {
     "symbol": "TSLA",
+    "name": "Tesla Inc.",
     "lastPrice": 245.10,
     "bid": 245.00,
     "ask": 245.20,
@@ -17,6 +19,7 @@
   },
   {
     "symbol": "GOOG",
+    "name": "Alphabet Inc.",
     "lastPrice": 2850.75,
     "bid": 2850.60,
     "ask": 2850.90,
@@ -25,6 +28,7 @@
   },
   {
     "symbol": "AMZN",
+    "name": "Amazon.com Inc.",
     "lastPrice": 3345.20,
     "bid": 3345.00,
     "ask": 3345.40,
@@ -33,6 +37,7 @@
   },
   {
     "symbol": "MSFT",
+    "name": "Microsoft Corporation",
     "lastPrice": 299.80,
     "bid": 299.70,
     "ask": 299.90,
