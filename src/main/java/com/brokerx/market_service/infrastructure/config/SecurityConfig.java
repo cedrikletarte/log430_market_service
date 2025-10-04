@@ -36,7 +36,7 @@ public class SecurityConfig {
                         // Swagger endpoint public access
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // Authenticated access to market endpoints
-                        .requestMatchers("/api/market/**").authenticated()
+                        .requestMatchers("/api/market/**").hasAnyRole("USER", "INTERNAL")
                         // Authenticated access to WebSocket endpoint
                         .requestMatchers("/ws/market/**").permitAll()
                         .anyRequest().authenticated())

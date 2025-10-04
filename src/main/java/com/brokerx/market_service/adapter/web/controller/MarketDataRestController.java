@@ -18,7 +18,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/market")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // Pour permettre les requêtes depuis le frontend
 public class MarketDataRestController {
 
     private final MarketDataSimulationService simulationService;

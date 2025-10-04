@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
@@ -35,25 +34,57 @@ public class MarketDataBroadcastService {
 
     @PostConstruct
     public void initialize() {
-        startBroadcasting();
-        startBulkBroadcasting();
+        // Use a single synchronized broadcaster to ensure identical values/timestamps
+        startSynchronizedBroadcasting();
         startCleanupTask();
     }
 
     /**
-     * Starts periodic broadcasting of individual market data (1 second interval)
+     * Starts periodic broadcasting for both individual symbols and bulk in the same tick
+     * to guarantee identical values and timestamps for all recipients (5 second interval)
      */
-    private void startBroadcasting() {
-        scheduler.scheduleAtFixedRate(this::broadcastIndividualMarketData, 1000, 1000, TimeUnit.MILLISECONDS);
-        log.info("Individual market data broadcasting started (1s interval)");
-    }
+    private void startSynchronizedBroadcasting() {
+        scheduler.scheduleAtFixedRate(() -> {
+            var allMarketData = simulationService.getAllMarketData();
+            if (allMarketData.isEmpty()) {
+                return;
+            }
 
-    /**
-     * Starts periodic broadcasting of bulk market data for /topic/market/all (5 second interval)
-     */
-    private void startBulkBroadcasting() {
-        scheduler.scheduleAtFixedRate(this::broadcastBulkMarketData, 5000, 5000, TimeUnit.MILLISECONDS);
-        log.info("Bulk market data broadcasting started (5s interval)");
+            // Use a single timestamp for this tick to guarantee synchronicity
+            String timestamp = LocalDateTime.now().toString();
+
+            // Convert all market data to DTOs once
+            var marketDataDtos = allMarketData.entrySet().stream()
+                .collect(Collectors.toMap(
+                    java.util.Map.Entry::getKey,
+                    entry -> convertToDto(entry.getValue(), "live")
+                ));
+
+            // Broadcast per-symbol only to those with subscribers, with the same timestamp
+            marketDataDtos.forEach((symbol, dto) -> {
+                Set<String> subscribers = subscriptionService.getSubscribersForSymbol(symbol);
+                if (!subscribers.isEmpty()) {
+                    SubscriptionResponseDto response = SubscriptionResponseDto.builder()
+                            .type("market_data")
+                            .data(dto)
+                            .timestamp(timestamp)
+                            .build();
+                    messagingTemplate.convertAndSend("/topic/market/" + symbol, response);
+                }
+            });
+
+            // Broadcast bulk snapshot with the exact same data and timestamp
+            SubscriptionResponseDto bulkResponse = SubscriptionResponseDto.builder()
+                    .type("bulk_market_data")
+                    .data(marketDataDtos)
+                    .timestamp(timestamp)
+                    .message("Bulk market data update - " + marketDataDtos.size() + " symbols")
+                    .build();
+            messagingTemplate.convertAndSend("/topic/market/all", bulkResponse);
+
+            log.debug("Synchronized broadcast completed for {} symbols", marketDataDtos.size());
+        }, 5000, 5000, TimeUnit.MILLISECONDS);
+        log.info("Synchronized market data broadcasting started (5s interval)");
     }
 
     /**
@@ -63,71 +94,6 @@ public class MarketDataBroadcastService {
         scheduler.scheduleAtFixedRate(subscriptionService::cleanupExpiredSubscriptions, 60000, 60000,
                 TimeUnit.MILLISECONDS);
         log.info("Subscription cleanup task started");
-    }
-
-    /**
-     * Broadcasts individual market data for specific symbol subscribers (1s interval)
-     */
-    @Async
-    public void broadcastIndividualMarketData() {
-        // Broadcast to specific subscribers of each symbol only
-        simulationService.getAllMarketData().forEach((symbol, marketData) -> {
-            Set<String> subscribers = subscriptionService.getSubscribersForSymbol(symbol);
-            if (!subscribers.isEmpty()) {
-                broadcastToSymbolSubscribers(symbol, marketData);
-            }
-        });
-    }
-
-    /**
-     * Broadcasts ALL market data in one JSON to /topic/market/all subscribers (5s interval)
-     */
-    @Async
-    public void broadcastBulkMarketData() {
-        var allMarketData = simulationService.getAllMarketData();
-        
-        if (allMarketData.isEmpty()) {
-            return;
-        }
-
-        // Convert all market data to DTOs
-        var marketDataDtos = allMarketData.entrySet().stream()
-            .collect(Collectors.toMap(
-                java.util.Map.Entry::getKey,
-                entry -> convertToDto(entry.getValue(), "live")
-            ));
-
-        // Create bulk response with all market data
-        SubscriptionResponseDto response = SubscriptionResponseDto.builder()
-                .type("bulk_market_data")
-                .data(marketDataDtos) // Use existing data field for bulk data
-                .timestamp(LocalDateTime.now().toString())
-                .message("Bulk market data update - " + marketDataDtos.size() + " symbols")
-                .build();
-
-        // Broadcast to all subscribers of /topic/market/all
-        messagingTemplate.convertAndSend("/topic/market/all", response);
-        
-        log.debug("Broadcasted bulk market data ({} symbols) to /topic/market/all subscribers", marketDataDtos.size());
-    }
-
-    /**
-     * Broadcasts data for a specific symbol to its subscribers
-     */
-    private void broadcastToSymbolSubscribers(String symbol, MarketData marketData) {
-        MarketDataDto marketDataDto = convertToDto(marketData, "live");
-
-        SubscriptionResponseDto response = SubscriptionResponseDto.builder()
-                .type("market_data")
-                .data(marketDataDto)
-                .timestamp(LocalDateTime.now().toString())
-                .build();
-
-        // Broadcast to all subscribers of the symbol
-        messagingTemplate.convertAndSend("/topic/market/" + symbol, response);
-
-        log.debug("Broadcasted market data for {} to {} subscribers", symbol,
-                subscriptionService.getSubscribersForSymbol(symbol).size());
     }
 
     /**
