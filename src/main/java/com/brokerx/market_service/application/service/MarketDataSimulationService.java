@@ -65,6 +65,7 @@ public class MarketDataSimulationService {
 
             for (Map<String, Object> data : initialData) {
                 MarketData marketData = MarketData.builder()
+                        .id(((Number) data.get("id")).longValue())
                         .symbol((String) data.get("symbol"))
                         .name((String) data.get("name"))
                         .lastPrice(new BigDecimal(data.get("lastPrice").toString()))
@@ -135,6 +136,16 @@ public class MarketDataSimulationService {
      */
     public MarketData getMarketData(String symbol) {
         return currentMarketData.get(symbol.toUpperCase());
+    }
+
+    /**
+     * Retrieves the current market data by ID
+     */
+    public MarketData getMarketDataById(Long id) {
+        return currentMarketData.values().stream()
+                .filter(md -> md.getId().equals(id))
+                .findFirst()
+                .orElse(null);
     }
 
     /**

@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MarketData {
     
+    private Long id;
     private String symbol;
     private String name;
     private BigDecimal lastPrice;

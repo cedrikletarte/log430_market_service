@@ -22,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final GatewayHeaderAuthenticationFilter gatewayHeaderAuthenticationFilter;
+    private final ServiceAuthenticationFilter serviceAuthenticationFilter;
 
     @Bean
     AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
@@ -35,6 +36,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Swagger endpoint public access
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // Internal endpoints - authenticated by ServiceAuthenticationFilter
+                        .requestMatchers("/internal/**").permitAll()
                         // Authenticated access to market endpoints
                         .requestMatchers("/api/market/**").hasAnyRole("USER", "INTERNAL")
                         // Authenticated access to WebSocket endpoint
@@ -42,6 +45,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(serviceAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(gatewayHeaderAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

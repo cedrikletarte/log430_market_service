@@ -1,4 +1,4 @@
-package com.brokerx.market_service.adapter.web.controller;
+package com.brokerx.market_service.adapter.web.api;
 
 import com.brokerx.market_service.adapter.web.dto.SubscriptionRequestDto;
 import com.brokerx.market_service.application.service.MarketDataBroadcastService;

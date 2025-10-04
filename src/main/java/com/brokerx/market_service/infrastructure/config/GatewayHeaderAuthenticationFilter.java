@@ -86,11 +86,12 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
         String path = request.getServletPath();
         
-        // don't filter public paths
+        // don't filter public paths and internal service-to-service endpoints
         return path.startsWith("/v3/api-docs") ||
                path.startsWith("/swagger-ui") ||
                path.startsWith("/ws/market") ||  // Exclure tous les endpoints WebSocket/SockJS
-               path.startsWith("/topic/market");
+               path.startsWith("/topic/market") ||
+               path.startsWith("/internal");     // Exclure les endpoints internes (service-to-service)
     }
 
     private boolean validateSignature(String signature, String userId, String email, String role) {
