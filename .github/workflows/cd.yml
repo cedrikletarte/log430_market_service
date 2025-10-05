@@ -23,8 +23,9 @@ jobs:
         run: docker compose pull || true
 
       - name: Start Docker services
+        run: |
+          docker compose up -d --build
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           GATEWAY_SECRET: ${{ secrets.GATEWAY_SECRET }}
           SERVICE_SECRET: ${{ secrets.SERVICE_SECRET }}
-        run: docker compose up -d --build
