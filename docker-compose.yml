@@ -1,0 +1,30 @@
+services:
+
+  # ============================================
+  # 📈 MARKET SERVICE
+  # ============================================
+
+  market_service:
+    build: .
+    container_name: market_service
+    depends_on:
+      market_postgres:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      GATEWAY_SECRET: ${GATEWAY_SECRET}
+      SERVICE_SECRET: ${SERVICE_SECRET}
+    restart: always
+    networks:
+      - brokerx-network
+
+# ============================================
+# 🌐 NETWORKS
+# ============================================
+
+networks:
+  brokerx-network:
+    external: true
+    name: brokerx-network
