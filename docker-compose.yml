@@ -4,9 +4,9 @@ services:
   # 📈 MARKET SERVICE
   # ============================================
 
-  market_service:
+  market-service:
     build: .
-    container_name: market_service
+    container_name: market-service
     expose:
       - "8080"
     environment:
