@@ -91,6 +91,8 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
                path.startsWith("/swagger-ui") ||
                path.startsWith("/ws/market") ||  // Exclure tous les endpoints WebSocket/SockJS
                path.startsWith("/topic/market") ||
+               path.startsWith("/actuator/health") ||
+               path.startsWith("/actuator/prometheus") ||
                path.startsWith("/internal");     // Exclure les endpoints internes (service-to-service)
     }
 
