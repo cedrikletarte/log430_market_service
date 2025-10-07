@@ -18,8 +18,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import lombok.extern.slf4j.Slf4j;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -27,9 +27,10 @@ import org.springframework.stereotype.Service;
 /**
  * Service responsible for simulating market data
  */
-@Slf4j
 @Service
 public class MarketDataSimulationService {
+
+    private static final Logger logger = LogManager.getLogger(MarketDataSimulationService.class);
 
     private final ObjectMapper objectMapper;
     private final Map<String, MarketData> currentMarketData = new ConcurrentHashMap<>();
@@ -78,9 +79,9 @@ public class MarketDataSimulationService {
                 currentMarketData.put(marketData.getSymbol(), marketData);
             }
 
-            log.info("Loaded {} initial market data entries", currentMarketData.size());
+            logger.info("Loaded {} initial market data entries", currentMarketData.size());
         } catch (IOException e) {
-            log.error("Failed to load initial market data", e);
+            logger.error("Failed to load initial market data", e);
         }
     }
 
@@ -89,7 +90,7 @@ public class MarketDataSimulationService {
      */
     private void startSimulation() {
         scheduler.scheduleAtFixedRate(this::simulateMarketMovement, 0, simulationInterval, TimeUnit.MILLISECONDS);
-        log.info("Market data simulation started with interval: {}ms", simulationInterval);
+        logger.info("Market data simulation started with interval: {}ms", simulationInterval);
     }
 
     /**
@@ -127,7 +128,7 @@ public class MarketDataSimulationService {
         marketData.setVolume(newVolume);
         marketData.setTimestamp(LocalDateTime.now());
 
-        log.debug("Updated market data for {}: price={}, bid={}, ask={}, volume={}",
+        logger.debug("Updated market data for {}: price={}, bid={}, ask={}, volume={}",
                 marketData.getSymbol(), newLastPrice, newBid, newAsk, newVolume);
     }
 
@@ -167,6 +168,6 @@ public class MarketDataSimulationService {
      */
     public void stopSimulation() {
         scheduler.shutdown();
-        log.info("Market data simulation stopped");
+        logger.info("Market data simulation stopped");
     }
 }

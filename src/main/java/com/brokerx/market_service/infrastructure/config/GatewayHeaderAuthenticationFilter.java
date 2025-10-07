@@ -51,10 +51,6 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        System.out.println("Headers reçus: " + USER_ID_HEADER + "=" + userId + ", " +
-                USER_EMAIL_HEADER + "=" + email + ", " +
-                USER_ROLE_HEADER + "=" + role);
-
         // Si les headers sont présents, le Gateway a validé le JWT
         if (userId != null && email != null && role != null) {
             
@@ -75,9 +71,6 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
             log.debug("Authentication set from Gateway headers: userId={}, email={}, role={}", 
                 userId, email, role);
         }
-
-        System.out.println("Authentication dans le contexte: " + SecurityContextHolder.getContext().getAuthentication());
-        System.out.println("Détails de l'authentification: " + SecurityContextHolder.getContext().getAuthentication().getDetails());
 
         filterChain.doFilter(request, response);
     }

@@ -9,18 +9,20 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
  * Service for monitoring the health of market data and system status
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MarketDataHealthService {
+
+    private static final Logger logger = LogManager.getLogger(MarketDataHealthService.class);
 
     private final MarketDataBroadcastService broadcastService;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -44,7 +46,7 @@ public class MarketDataHealthService {
     @PostConstruct
     public void initialize() {
         startHealthMonitoring();
-        log.info("Market data health monitoring started");
+        logger.info("Market data health monitoring started");
     }
 
     /**
@@ -72,7 +74,7 @@ public class MarketDataHealthService {
         // Evaluates the overall system status
         evaluateSystemStatus();
 
-        log.debug("Health check completed. System status: {}", systemStatus);
+        logger.debug("Health check completed. System status: {}", systemStatus);
     }
 
     /**
@@ -87,7 +89,7 @@ public class MarketDataHealthService {
         if (health.status != SymbolStatus.HEALTHY) {
             health.status = SymbolStatus.HEALTHY;
             health.errorCount = 0;
-            log.info("Symbol {} returned to healthy status", symbol);
+            logger.info("Symbol {} returned to healthy status", symbol);
         }
     }
 
@@ -100,7 +102,7 @@ public class MarketDataHealthService {
         health.lastError = errorMessage;
         health.lastErrorTime = LocalDateTime.now();
 
-        log.warn("Error reported for symbol {}: {} (error count: {})", symbol, errorMessage, health.errorCount);
+        logger.warn("Error reported for symbol {}: {} (error count: {})", symbol, errorMessage, health.errorCount);
 
         // Triggers an immediate check
         checkSymbolHealth(symbol, health, LocalDateTime.now());
@@ -134,7 +136,7 @@ public class MarketDataHealthService {
      * Handles the status changes of a symbol
      */
     private void handleStatusChange(String symbol, SymbolStatus from, SymbolStatus to) {
-        log.info("Symbol {} status changed from {} to {}", symbol, from, to);
+        logger.info("Symbol {} status changed from {} to {}", symbol, from, to);
 
         switch (to) {
             case STALE:
@@ -192,7 +194,7 @@ public class MarketDataHealthService {
             systemStatus = newStatus;
             lastStatusChange = LocalDateTime.now();
 
-            log.warn("System status changed from {} to {}", previousStatus, newStatus);
+            logger.warn("System status changed from {} to {}", previousStatus, newStatus);
 
             // Déclenche des actions selon le nouveau statut
             handleSystemStatusChange(newStatus);
@@ -205,17 +207,17 @@ public class MarketDataHealthService {
     private void handleSystemStatusChange(SystemStatus status) {
         switch (status) {
             case CRITICAL:
-                log.error("CRITICAL: Market data system is in critical state");
+                logger.error("CRITICAL: Market data system is in critical state");
                 // Here we could trigger alerts, notifications, etc.
                 break;
             case DEGRADED:
-                log.warn("WARNING: Market data system is in degraded mode");
+                logger.warn("WARNING: Market data system is in degraded mode");
                 break;
             case WARNING:
-                log.warn("WARNING: Market data system quality is degraded");
+                logger.warn("WARNING: Market data system quality is degraded");
                 break;
             case NORMAL:
-                log.info("Market data system returned to normal operation");
+                logger.info("Market data system returned to normal operation");
                 break;
         }
     }
@@ -229,7 +231,7 @@ public class MarketDataHealthService {
         health.lastError = "Forced degraded mode: " + reason;
         health.lastErrorTime = LocalDateTime.now();
 
-        log.warn("Forced symbol {} into degraded mode: {}", symbol, reason);
+        logger.warn("Forced symbol {} into degraded mode: {}", symbol, reason);
         broadcastService.broadcastDegradedMode(symbol);
     }
 
@@ -270,7 +272,7 @@ public class MarketDataHealthService {
      */
     public void shutdown() {
         scheduler.shutdown();
-        log.info("Market data health service shutdown");
+        logger.info("Market data health service shutdown");
     }
 
     /**

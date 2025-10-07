@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import lombok.extern.slf4j.Slf4j;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,9 +15,10 @@ import org.springframework.stereotype.Service;
  * Service for managing user quotas and rate limiting
  *
  */
-@Slf4j
 @Service
 public class QuotaAndRateLimitService {
+
+    private static final Logger logger = LogManager.getLogger(QuotaAndRateLimitService.class);
 
     @Value("${market.quota.max-symbols-per-user:10}")
     private int maxSymbolsPerUser;
@@ -46,7 +47,7 @@ public class QuotaAndRateLimitService {
         int totalSymbols = quota.currentSymbols + additionalSymbols;
 
         if (totalSymbols > maxSymbolsPerUser) {
-            log.warn("Symbol quota exceeded for user {}: {} > {}", userId, totalSymbols, maxSymbolsPerUser);
+            logger.warn("Symbol quota exceeded for user {}: {} > {}", userId, totalSymbols, maxSymbolsPerUser);
             return QuotaCheckResult.failure("Symbol quota exceeded. Maximum allowed: " + maxSymbolsPerUser);
         }
 
@@ -60,7 +61,7 @@ public class QuotaAndRateLimitService {
         UserQuota quota = userQuotas.computeIfAbsent(userId, k -> new UserQuota());
 
         if (quota.currentConnections >= maxConnectionsPerUser) {
-            log.warn("Connection quota exceeded for user {}: {} >= {}", userId, quota.currentConnections,
+            logger.warn("Connection quota exceeded for user {}: {} >= {}", userId, quota.currentConnections,
                     maxConnectionsPerUser);
             return QuotaCheckResult.failure("Connection quota exceeded. Maximum allowed: " + maxConnectionsPerUser);
         }
@@ -81,7 +82,7 @@ public class QuotaAndRateLimitService {
 
         // Checks if the limit is exceeded
         if (tracker.requestCount.get() >= requestsPerMinute) {
-            log.warn("Rate limit exceeded for session {}: {} requests per minute", sessionId,
+            logger.warn("Rate limit exceeded for session {}: {} requests per minute", sessionId,
                     tracker.requestCount.get());
             return RateLimitResult
                     .rateLimited("Rate limit exceeded. Maximum: " + requestsPerMinute + " requests per minute");
@@ -92,7 +93,7 @@ public class QuotaAndRateLimitService {
         double usagePercentage = (double) currentRequests / requestsPerMinute * 100;
 
         if (usagePercentage >= throttleThreshold) {
-            log.info("Throttling session {}: {}% of rate limit used", sessionId, usagePercentage);
+            logger.info("Throttling session {}: {}% of rate limit used", sessionId, usagePercentage);
             return RateLimitResult.throttled("High request rate detected. Entering throttled mode.");
         }
 
@@ -106,7 +107,7 @@ public class QuotaAndRateLimitService {
     public void updateSymbolQuota(String userId, int symbolCount) {
         UserQuota quota = userQuotas.computeIfAbsent(userId, k -> new UserQuota());
         quota.currentSymbols = symbolCount;
-        log.debug("Updated symbol quota for user {}: {} symbols", userId, symbolCount);
+        logger.debug("Updated symbol quota for user {}: {} symbols", userId, symbolCount);
     }
 
     /**
@@ -115,7 +116,7 @@ public class QuotaAndRateLimitService {
     public void incrementConnectionQuota(String userId) {
         UserQuota quota = userQuotas.computeIfAbsent(userId, k -> new UserQuota());
         quota.currentConnections++;
-        log.debug("Incremented connection quota for user {}: {} connections", userId, quota.currentConnections);
+        logger.debug("Incremented connection quota for user {}: {} connections", userId, quota.currentConnections);
     }
 
     /**
@@ -125,7 +126,7 @@ public class QuotaAndRateLimitService {
         UserQuota quota = userQuotas.get(userId);
         if (quota != null && quota.currentConnections > 0) {
             quota.currentConnections--;
-            log.debug("Decremented connection quota for user {}: {} connections", userId, quota.currentConnections);
+            logger.debug("Decremented connection quota for user {}: {} connections", userId, quota.currentConnections);
         }
     }
 
@@ -134,7 +135,7 @@ public class QuotaAndRateLimitService {
      */
     public void removeUserData(String userId) {
         userQuotas.remove(userId);
-        log.debug("Removed quota data for user: {}", userId);
+        logger.debug("Removed quota data for user: {}", userId);
     }
 
     /**
@@ -142,7 +143,7 @@ public class QuotaAndRateLimitService {
      */
     public void removeSessionData(String sessionId) {
         rateLimitTrackers.remove(sessionId);
-        log.debug("Removed rate limit data for session: {}", sessionId);
+        logger.debug("Removed rate limit data for session: {}", sessionId);
     }
 
     /**
@@ -154,7 +155,7 @@ public class QuotaAndRateLimitService {
         rateLimitTrackers.entrySet().removeIf(entry -> {
             RateLimitTracker tracker = entry.getValue();
             if (tracker.lastRequestTime.isBefore(cutoff)) {
-                log.debug("Cleaned up old rate limit tracker for session: {}", entry.getKey());
+                logger.debug("Cleaned up old rate limit tracker for session: {}", entry.getKey());
                 return true;
             }
             return false;

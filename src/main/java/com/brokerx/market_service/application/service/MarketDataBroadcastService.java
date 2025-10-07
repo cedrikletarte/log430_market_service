@@ -14,18 +14,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * Service responsible for broadcasting market data to subscribed clients
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MarketDataBroadcastService {
+
+    private static final Logger logger = LogManager.getLogger(MarketDataBroadcastService.class);
 
     private final SimpMessagingTemplate messagingTemplate;
     private final MarketDataSimulationService simulationService;
@@ -82,9 +85,9 @@ public class MarketDataBroadcastService {
                     .build();
             messagingTemplate.convertAndSend("/topic/market/all", bulkResponse);
 
-            log.debug("Synchronized broadcast completed for {} symbols", marketDataDtos.size());
+            logger.debug("Synchronized broadcast completed for {} symbols", marketDataDtos.size());
         }, 5000, 5000, TimeUnit.MILLISECONDS);
-        log.info("Synchronized market data broadcasting started (5s interval)");
+        logger.info("Synchronized market data broadcasting started (5s interval)");
     }
 
     /**
@@ -93,7 +96,7 @@ public class MarketDataBroadcastService {
     private void startCleanupTask() {
         scheduler.scheduleAtFixedRate(subscriptionService::cleanupExpiredSubscriptions, 60000, 60000,
                 TimeUnit.MILLISECONDS);
-        log.info("Subscription cleanup task started");
+        logger.info("Subscription cleanup task started");
     }
 
     /**
@@ -107,7 +110,7 @@ public class MarketDataBroadcastService {
                 .build();
 
         messagingTemplate.convertAndSendToUser(sessionId, "/queue/subscription", response);
-        log.info("Sent subscription success to session: {} for symbols: {}", sessionId, symbols);
+        logger.info("Sent subscription success to session: {} for symbols: {}", sessionId, symbols);
     }
 
     /**
@@ -121,7 +124,7 @@ public class MarketDataBroadcastService {
                 .build();
 
         messagingTemplate.convertAndSendToUser(sessionId, "/queue/subscription", response);
-        log.warn("Sent subscription error to session: {} - {}", sessionId, errorMessage);
+        logger.warn("Sent subscription error to session: {} - {}", sessionId, errorMessage);
     }
 
     /**
@@ -135,7 +138,7 @@ public class MarketDataBroadcastService {
                 .build();
 
         messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", response);
-        log.error("Sent error to session: {} - {}", sessionId, errorMessage);
+        logger.error("Sent error to session: {} - {}", sessionId, errorMessage);
     }
 
     /**
@@ -154,7 +157,7 @@ public class MarketDataBroadcastService {
                     .build();
 
             messagingTemplate.convertAndSend("/topic/market/" + symbol, response);
-            log.warn("Broadcasted degraded mode data for symbol: {}", symbol);
+            logger.warn("Broadcasted degraded mode data for symbol: {}", symbol);
         }
     }
 
@@ -169,7 +172,7 @@ public class MarketDataBroadcastService {
                 .build();
 
         messagingTemplate.convertAndSend("/topic/market/" + symbol, response);
-        log.warn("Broadcasted stale data alert for symbol: {}", symbol);
+        logger.warn("Broadcasted stale data alert for symbol: {}", symbol);
     }
 
     /**
@@ -195,6 +198,6 @@ public class MarketDataBroadcastService {
      */
     public void shutdown() {
         scheduler.shutdown();
-        log.info("Market data broadcast service shutdown");
+        logger.info("Market data broadcast service shutdown");
     }
 }

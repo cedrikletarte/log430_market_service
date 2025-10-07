@@ -8,16 +8,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import lombok.extern.slf4j.Slf4j;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 /**
  * Service for managing market data subscriptions
  */
-@Slf4j
 @Service
 public class MarketSubscriptionService {
+
+    private static final Logger logger = LogManager.getLogger(MarketSubscriptionService.class);
 
     private final Map<String, MarketSubscription> subscriptions = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> symbolSubscribers = new ConcurrentHashMap<>();
@@ -39,7 +40,7 @@ public class MarketSubscriptionService {
                     .build();
 
             subscriptions.put(sessionId, subscription);
-            log.info("Created new subscription for session: {} with symbols: {}", sessionId, symbols);
+            logger.info("Created new subscription for session: {} with symbols: {}", sessionId, symbols);
         } else {
             // Removes old symbol subscriptions
             removeSymbolSubscriptions(sessionId, subscription.getSubscribedSymbols());
@@ -47,7 +48,7 @@ public class MarketSubscriptionService {
             // Updates with new symbols
             subscription.setSubscribedSymbols(new HashSet<>(symbols));
             subscription.updateActivity();
-            log.info("Updated subscription for session: {} with symbols: {}", sessionId, symbols);
+            logger.info("Updated subscription for session: {} with symbols: {}", sessionId, symbols);
         }
 
         // Adds new symbol subscriptions
@@ -65,7 +66,7 @@ public class MarketSubscriptionService {
             subscription.getSubscribedSymbols().addAll(symbols);
             subscription.updateActivity();
             addSymbolSubscriptions(sessionId, symbols);
-            log.info("Added symbols {} to subscription {}", symbols, sessionId);
+            logger.info("Added symbols {} to subscription {}", symbols, sessionId);
         }
     }
 
@@ -78,7 +79,7 @@ public class MarketSubscriptionService {
             subscription.getSubscribedSymbols().removeAll(symbols);
             subscription.updateActivity();
             removeSymbolSubscriptions(sessionId, symbols);
-            log.info("Removed symbols {} from subscription {}", symbols, sessionId);
+            logger.info("Removed symbols {} from subscription {}", symbols, sessionId);
         }
     }
 
@@ -89,19 +90,19 @@ public class MarketSubscriptionService {
         MarketSubscription subscription = subscriptions.remove(sessionId);
         if (subscription != null) {
             removeSymbolSubscriptions(sessionId, subscription.getSubscribedSymbols());
-            log.info("Removed subscription for session: {}", sessionId);
+            logger.info("Removed subscription for session: {}", sessionId);
         }
     }
 
     /**
-     * DDeactivates a subscription (without deleting it)
+     * Deactivates a subscription (without deleting it)
      */
     public void deactivateSubscription(String sessionId) {
         MarketSubscription subscription = subscriptions.get(sessionId);
         if (subscription != null) {
             subscription.setActive(false);
             removeSymbolSubscriptions(sessionId, subscription.getSubscribedSymbols());
-            log.info("Deactivated subscription for session: {}", sessionId);
+            logger.info("Deactivated subscription for session: {}", sessionId);
         }
     }
 
@@ -137,7 +138,7 @@ public class MarketSubscriptionService {
             MarketSubscription subscription = entry.getValue();
             if (!subscription.isValid()) {
                 removeSymbolSubscriptions(entry.getKey(), subscription.getSubscribedSymbols());
-                log.info("Cleaned up expired subscription: {}", entry.getKey());
+                logger.info("Cleaned up expired subscription: {}", entry.getKey());
                 return true;
             }
             return false;
