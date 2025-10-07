@@ -1,6 +1,5 @@
 package com.brokerx.market_service.infrastructure.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -30,6 +29,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
         // WebSocket endpoint for clients to connect to
-        registry.addEndpoint("/ws/market");
+        registry.addEndpoint("/ws/market")
+                .setAllowedOriginPatterns("*");
     }
 }
