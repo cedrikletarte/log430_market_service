@@ -39,7 +39,7 @@ public class SecurityConfig {
                         // Internal endpoints - authenticated by ServiceAuthenticationFilter
                         .requestMatchers("/internal/**").permitAll()
                         // Authenticated access to market endpoints
-                        .requestMatchers("/api/market/**").hasAnyRole("USER", "INTERNAL")
+                        .requestMatchers("/api/market/**").hasAnyRole("USER", "ADMIN", "INTERNAL")
                         // Authenticated access to WebSocket endpoint
                         .requestMatchers("/ws/market/**").permitAll()
                         .anyRequest().authenticated())
