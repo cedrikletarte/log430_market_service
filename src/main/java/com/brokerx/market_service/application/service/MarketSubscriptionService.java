@@ -1,12 +1,16 @@
 package com.brokerx.market_service.application.service;
 
+import com.brokerx.market_service.application.port.in.ManageSubscriptionUseCase;
+import com.brokerx.market_service.application.port.in.SubscribeToMarketDataUseCase;
+import com.brokerx.market_service.application.port.out.SubscriptionRepositoryaPort;
+import com.brokerx.market_service.application.port.out.SymbolSubscriberRepositoryPort;
 import com.brokerx.market_service.domain.model.MarketSubscription;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+
+import lombok.RequiredArgsConstructor;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,20 +18,20 @@ import org.springframework.stereotype.Service;
 
 /**
  * Service for managing market data subscriptions
+ * Implements hexagonal architecture with use case ports
  */
 @Service
-public class MarketSubscriptionService {
+@RequiredArgsConstructor
+public class MarketSubscriptionService implements SubscribeToMarketDataUseCase, ManageSubscriptionUseCase {
 
     private static final Logger logger = LogManager.getLogger(MarketSubscriptionService.class);
 
-    private final Map<String, MarketSubscription> subscriptions = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> symbolSubscribers = new ConcurrentHashMap<>();
+    private final SubscriptionRepositoryaPort subscriptionRepository;
+    private final SymbolSubscriberRepositoryPort symbolSubscriberRepository;
 
-    /**
-     * Creates or updates a subscription for a user
-     */
-    public MarketSubscription createOrUpdateSubscription(String sessionId, String userId, Set<String> symbols) {
-        MarketSubscription subscription = subscriptions.get(sessionId);
+    @Override
+    public MarketSubscription subscribe(String sessionId, String userId, Set<String> symbols) {
+        MarketSubscription subscription = subscriptionRepository.findBySessionId(sessionId).orElse(null);
 
         if (subscription == null) {
             subscription = MarketSubscription.builder()
@@ -39,144 +43,104 @@ public class MarketSubscriptionService {
                     .isActive(true)
                     .build();
 
-            subscriptions.put(sessionId, subscription);
+            subscriptionRepository.save(subscription);
             logger.info("Created new subscription for session: {} with symbols: {}", sessionId, symbols);
         } else {
             // Removes old symbol subscriptions
-            removeSymbolSubscriptions(sessionId, subscription.getSubscribedSymbols());
+            symbolSubscriberRepository.removeSubscriberFromSymbols(subscription.getSubscribedSymbols(), sessionId);
 
             // Updates with new symbols
             subscription.setSubscribedSymbols(new HashSet<>(symbols));
             subscription.updateActivity();
+            subscriptionRepository.save(subscription);
             logger.info("Updated subscription for session: {} with symbols: {}", sessionId, symbols);
         }
 
         // Adds new symbol subscriptions
-        addSymbolSubscriptions(sessionId, symbols);
+        symbolSubscriberRepository.addSubscriberToSymbols(symbols, sessionId);
 
         return subscription;
     }
 
-    /**
-     * Adds symbols to an existing subscription
-     */
-    public void addSymbolsToSubscription(String sessionId, Set<String> symbols) {
-        MarketSubscription subscription = subscriptions.get(sessionId);
-        if (subscription != null && subscription.isActive()) {
-            subscription.getSubscribedSymbols().addAll(symbols);
-            subscription.updateActivity();
-            addSymbolSubscriptions(sessionId, symbols);
-            logger.info("Added symbols {} to subscription {}", symbols, sessionId);
-        }
+    @Override
+    public void addSymbols(String sessionId, Set<String> symbols) {
+        subscriptionRepository.findBySessionId(sessionId).ifPresent(subscription -> {
+            if (subscription.isActive()) {
+                subscription.getSubscribedSymbols().addAll(symbols);
+                subscription.updateActivity();
+                subscriptionRepository.save(subscription);
+                symbolSubscriberRepository.addSubscriberToSymbols(symbols, sessionId);
+                logger.info("Added symbols {} to subscription {}", symbols, sessionId);
+            }
+        });
     }
 
-    /**
-     * Removes symbols from an existing subscription
-     */
-    public void removeSymbolsFromSubscription(String sessionId, Set<String> symbols) {
-        MarketSubscription subscription = subscriptions.get(sessionId);
-        if (subscription != null && subscription.isActive()) {
-            subscription.getSubscribedSymbols().removeAll(symbols);
-            subscription.updateActivity();
-            removeSymbolSubscriptions(sessionId, symbols);
-            logger.info("Removed symbols {} from subscription {}", symbols, sessionId);
-        }
+    @Override
+    public void removeSymbols(String sessionId, Set<String> symbols) {
+        subscriptionRepository.findBySessionId(sessionId).ifPresent(subscription -> {
+            if (subscription.isActive()) {
+                subscription.getSubscribedSymbols().removeAll(symbols);
+                subscription.updateActivity();
+                subscriptionRepository.save(subscription);
+                symbolSubscriberRepository.removeSubscriberFromSymbols(symbols, sessionId);
+                logger.info("Removed symbols {} from subscription {}", symbols, sessionId);
+            }
+        });
     }
 
-    /**
-     * Deletes a subscription completely
-     */
+    @Override
     public void removeSubscription(String sessionId) {
-        MarketSubscription subscription = subscriptions.remove(sessionId);
-        if (subscription != null) {
-            removeSymbolSubscriptions(sessionId, subscription.getSubscribedSymbols());
+        subscriptionRepository.findBySessionId(sessionId).ifPresent(subscription -> {
+            symbolSubscriberRepository.removeSubscriberFromSymbols(subscription.getSubscribedSymbols(), sessionId);
+            subscriptionRepository.deleteBySessionId(sessionId);
             logger.info("Removed subscription for session: {}", sessionId);
-        }
+        });
     }
 
-    /**
-     * Deactivates a subscription (without deleting it)
-     */
+    @Override
     public void deactivateSubscription(String sessionId) {
-        MarketSubscription subscription = subscriptions.get(sessionId);
-        if (subscription != null) {
+        subscriptionRepository.findBySessionId(sessionId).ifPresent(subscription -> {
             subscription.setActive(false);
-            removeSymbolSubscriptions(sessionId, subscription.getSubscribedSymbols());
+            symbolSubscriberRepository.removeSubscriberFromSymbols(subscription.getSubscribedSymbols(), sessionId);
+            subscriptionRepository.save(subscription);
             logger.info("Deactivated subscription for session: {}", sessionId);
-        }
+        });
     }
 
-    /**
-     * Retrieves a subscription by session ID
-     */
+    @Override
     public MarketSubscription getSubscription(String sessionId) {
-        return subscriptions.get(sessionId);
+        return subscriptionRepository.findBySessionId(sessionId).orElse(null);
     }
 
-    /**
-     * Retrieves all sessions subscribed to a given symbol
-     */
+    @Override
     public Set<String> getSubscribersForSymbol(String symbol) {
-        return symbolSubscribers.getOrDefault(symbol.toUpperCase(), new HashSet<>());
+        return symbolSubscriberRepository.getSubscribers(symbol);
     }
 
-    /**
-     * Updates the last activity timestamp of a subscription
-     */
+    @Override
     public void updateActivity(String sessionId) {
-        MarketSubscription subscription = subscriptions.get(sessionId);
-        if (subscription != null) {
+        subscriptionRepository.findBySessionId(sessionId).ifPresent(subscription -> {
             subscription.updateActivity();
-        }
+            subscriptionRepository.save(subscription);
+        });
     }
 
-    /**
-     * Cleans up expired subscriptions
-     */
+    @Override
     public void cleanupExpiredSubscriptions() {
-        subscriptions.entrySet().removeIf(entry -> {
-            MarketSubscription subscription = entry.getValue();
+        subscriptionRepository.findAll().forEach(subscription -> {
             if (!subscription.isValid()) {
-                removeSymbolSubscriptions(entry.getKey(), subscription.getSubscribedSymbols());
-                logger.info("Cleaned up expired subscription: {}", entry.getKey());
-                return true;
-            }
-            return false;
-        });
-    }
-
-    /**
-     * Adds subscriptions to symbols
-     */
-    private void addSymbolSubscriptions(String sessionId, Set<String> symbols) {
-        symbols.forEach(symbol -> {
-            String upperSymbol = symbol.toUpperCase();
-            symbolSubscribers.computeIfAbsent(upperSymbol, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
-        });
-    }
-
-    /**
-     * Removes subscriptions from symbols
-     */
-    private void removeSymbolSubscriptions(String sessionId, Set<String> symbols) {
-        symbols.forEach(symbol -> {
-            String upperSymbol = symbol.toUpperCase();
-            Set<String> subscribers = symbolSubscribers.get(upperSymbol);
-            if (subscribers != null) {
-                subscribers.remove(sessionId);
-                if (subscribers.isEmpty()) {
-                    symbolSubscribers.remove(upperSymbol);
-                }
+                symbolSubscriberRepository.removeSubscriberFromSymbols(
+                        subscription.getSubscribedSymbols(), 
+                        subscription.getSessionId()
+                );
+                subscriptionRepository.deleteBySessionId(subscription.getSessionId());
+                logger.info("Cleaned up expired subscription: {}", subscription.getSessionId());
             }
         });
     }
 
-    /**
-     * Retrieves the total number of active subscriptions
-     */
+    @Override
     public int getActiveSubscriptionsCount() {
-        return (int) subscriptions.values().stream()
-                .filter(MarketSubscription::isValid)
-                .count();
+        return (int) subscriptionRepository.countActive();
     }
 }

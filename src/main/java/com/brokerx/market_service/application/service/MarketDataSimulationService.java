@@ -1,5 +1,6 @@
 package com.brokerx.market_service.application.service;
 
+import com.brokerx.market_service.application.port.in.GetMarketDataUseCase;
 import com.brokerx.market_service.domain.model.MarketData;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,9 +27,10 @@ import org.springframework.stereotype.Service;
 
 /**
  * Service responsible for simulating market data
+ * Implements hexagonal architecture with use case ports
  */
 @Service
-public class MarketDataSimulationService {
+public class MarketDataSimulationService implements GetMarketDataUseCase {
 
     private static final Logger logger = LogManager.getLogger(MarketDataSimulationService.class);
 
@@ -132,11 +134,19 @@ public class MarketDataSimulationService {
                 marketData.getSymbol(), newLastPrice, newBid, newAsk, newVolume);
     }
 
-    /**
-     * Retrieves the current market data for a symbol
-     */
+    @Override
     public MarketData getMarketData(String symbol) {
         return currentMarketData.get(symbol.toUpperCase());
+    }
+
+    @Override
+    public Map<String, MarketData> getAllMarketData() {
+        return Map.copyOf(currentMarketData);
+    }
+
+    @Override
+    public boolean isSymbolAvailable(String symbol) {
+        return currentMarketData.containsKey(symbol.toUpperCase());
     }
 
     /**
@@ -147,20 +157,6 @@ public class MarketDataSimulationService {
                 .filter(md -> md.getId().equals(id))
                 .findFirst()
                 .orElse(null);
-    }
-
-    /**
-     * Retrieves all current market data
-     */
-    public Map<String, MarketData> getAllMarketData() {
-        return Map.copyOf(currentMarketData);
-    }
-
-    /**
-     * Checks if a symbol is available
-     */
-    public boolean isSymbolAvailable(String symbol) {
-        return currentMarketData.containsKey(symbol.toUpperCase());
     }
 
     /**

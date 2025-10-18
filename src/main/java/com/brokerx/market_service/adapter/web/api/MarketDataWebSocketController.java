@@ -1,10 +1,10 @@
 package com.brokerx.market_service.adapter.web.api;
 
 import com.brokerx.market_service.adapter.web.dto.SubscriptionRequestDto;
-import com.brokerx.market_service.application.service.MarketDataBroadcastService;
-import com.brokerx.market_service.application.service.MarketDataSimulationService;
-import com.brokerx.market_service.application.service.MarketSubscriptionService;
-import com.brokerx.market_service.domain.model.MarketSubscription;
+import com.brokerx.market_service.application.port.in.BroadcastMarketDataUseCase;
+import com.brokerx.market_service.application.port.in.GetMarketDataUseCase;
+import com.brokerx.market_service.application.port.in.ManageSubscriptionUseCase;
+import com.brokerx.market_service.application.port.in.SubscribeToMarketDataUseCase;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -20,16 +20,18 @@ import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
 
 /**
- * Websocket Controller for managing market data subscriptions
+ * WebSocket Controller for managing market data subscriptions
+ * Uses hexagonal architecture - depends on use case ports
  */
 @Slf4j
 @Controller
 @RequiredArgsConstructor
 public class MarketDataWebSocketController {
 
-    private final MarketSubscriptionService subscriptionService;
-    private final MarketDataSimulationService simulationService;
-    private final MarketDataBroadcastService broadcastService;
+    private final SubscribeToMarketDataUseCase subscribeToMarketDataUseCase;
+    private final ManageSubscriptionUseCase manageSubscriptionUseCase;
+    private final GetMarketDataUseCase getMarketDataUseCase;
+    private final BroadcastMarketDataUseCase broadcastMarketDataUseCase;
 
     /**
      * Handles market data subscription requests
@@ -48,7 +50,7 @@ public class MarketDataWebSocketController {
         try {
             // Validate input data
             if (request.getSymbols() == null || request.getSymbols().isEmpty()) {
-                broadcastService.sendSubscriptionError(sessionId, "No symbols provided for subscription");
+                broadcastMarketDataUseCase.sendSubscriptionError(sessionId, "No symbols provided for subscription");
                 return;
             }
 
@@ -56,7 +58,7 @@ public class MarketDataWebSocketController {
             Set<String> normalizedSymbols = new HashSet<>();
             for (String symbol : request.getSymbols()) {
                 String upperSymbol = symbol.toUpperCase();
-                if (simulationService.isSymbolAvailable(upperSymbol)) {
+                if (getMarketDataUseCase.isSymbolAvailable(upperSymbol)) {
                     normalizedSymbols.add(upperSymbol);
                 } else {
                     log.warn("Symbol {} is not available", upperSymbol);
@@ -64,7 +66,7 @@ public class MarketDataWebSocketController {
             }
 
             if (normalizedSymbols.isEmpty()) {
-                broadcastService.sendSubscriptionError(sessionId, "None of the requested symbols are available");
+                broadcastMarketDataUseCase.sendSubscriptionError(sessionId, "None of the requested symbols are available");
                 return;
             }
 
@@ -73,7 +75,7 @@ public class MarketDataWebSocketController {
 
         } catch (Exception e) {
             log.error("Error processing subscription request from session: {}", sessionId, e);
-            broadcastService.sendSubscriptionError(sessionId, "Internal error processing subscription");
+            broadcastMarketDataUseCase.sendSubscriptionError(sessionId, "Internal error processing subscription");
         }
     }
 
@@ -90,7 +92,7 @@ public class MarketDataWebSocketController {
         log.info("Client {} subscribed to market topic via session: {}", userId, sessionId);
 
         // Updates the subscription activity if it exists
-        subscriptionService.updateActivity(sessionId);
+        manageSubscriptionUseCase.updateActivity(sessionId);
     }
 
     /**
@@ -106,7 +108,7 @@ public class MarketDataWebSocketController {
         log.info("Client {} subscribed to ALL market data via session: {}", userId, sessionId);
 
         // Updates the subscription activity if it exists
-        subscriptionService.updateActivity(sessionId);
+        manageSubscriptionUseCase.updateActivity(sessionId);
     }
 
     /**
@@ -131,7 +133,7 @@ public class MarketDataWebSocketController {
                 handleRemoveSymbols(sessionId, symbols);
                 break;
             default:
-                broadcastService.sendSubscriptionError(sessionId, "Unknown action: " + action);
+                broadcastMarketDataUseCase.sendSubscriptionError(sessionId, "Unknown action: " + action);
         }
     }
 
@@ -140,15 +142,14 @@ public class MarketDataWebSocketController {
      */
     private void handleSubscribe(String sessionId, String userId, Set<String> symbols) {
         try {
-            MarketSubscription subscription = subscriptionService.createOrUpdateSubscription(sessionId, userId,
-                    symbols);
-            broadcastService.sendSubscriptionSuccess(sessionId, symbols);
+            subscribeToMarketDataUseCase.subscribe(sessionId, userId, symbols);
+            broadcastMarketDataUseCase.sendSubscriptionSuccess(sessionId, symbols);
 
             log.info("Successfully subscribed session {} to symbols: {}", sessionId, symbols);
 
         } catch (Exception e) {
             log.error("Error creating subscription for session: {}", sessionId, e);
-            broadcastService.sendSubscriptionError(sessionId, "Failed to create subscription");
+            broadcastMarketDataUseCase.sendSubscriptionError(sessionId, "Failed to create subscription");
         }
     }
 
@@ -159,18 +160,18 @@ public class MarketDataWebSocketController {
         try {
             if (symbols.isEmpty()) {
                 // Complete unsubscription
-                subscriptionService.removeSubscription(sessionId);
-                broadcastService.sendSubscriptionSuccess(sessionId, Set.of("all"));
+                manageSubscriptionUseCase.removeSubscription(sessionId);
+                broadcastMarketDataUseCase.sendSubscriptionSuccess(sessionId, Set.of("all"));
                 log.info("Unsubscribed session {} from all symbols", sessionId);
             } else {
                 // Partial unsubscription
-                subscriptionService.removeSymbolsFromSubscription(sessionId, symbols);
-                broadcastService.sendSubscriptionSuccess(sessionId, symbols);
+                subscribeToMarketDataUseCase.removeSymbols(sessionId, symbols);
+                broadcastMarketDataUseCase.sendSubscriptionSuccess(sessionId, symbols);
                 log.info("Unsubscribed session {} from symbols: {}", sessionId, symbols);
             }
         } catch (Exception e) {
             log.error("Error unsubscribing session: {}", sessionId, e);
-            broadcastService.sendSubscriptionError(sessionId, "Failed to unsubscribe");
+            broadcastMarketDataUseCase.sendSubscriptionError(sessionId, "Failed to unsubscribe");
         }
     }
 
@@ -179,12 +180,12 @@ public class MarketDataWebSocketController {
      */
     private void handleAddSymbols(String sessionId, Set<String> symbols) {
         try {
-            subscriptionService.addSymbolsToSubscription(sessionId, symbols);
-            broadcastService.sendSubscriptionSuccess(sessionId, symbols);
+            subscribeToMarketDataUseCase.addSymbols(sessionId, symbols);
+            broadcastMarketDataUseCase.sendSubscriptionSuccess(sessionId, symbols);
             log.info("Added symbols {} to subscription {}", symbols, sessionId);
         } catch (Exception e) {
             log.error("Error adding symbols to subscription {}", sessionId, e);
-            broadcastService.sendSubscriptionError(sessionId, "Failed to add symbols");
+            broadcastMarketDataUseCase.sendSubscriptionError(sessionId, "Failed to add symbols");
         }
     }
 
@@ -193,12 +194,12 @@ public class MarketDataWebSocketController {
      */
     private void handleRemoveSymbols(String sessionId, Set<String> symbols) {
         try {
-            subscriptionService.removeSymbolsFromSubscription(sessionId, symbols);
-            broadcastService.sendSubscriptionSuccess(sessionId, symbols);
+            subscribeToMarketDataUseCase.removeSymbols(sessionId, symbols);
+            broadcastMarketDataUseCase.sendSubscriptionSuccess(sessionId, symbols);
             log.info("Removed symbols {} from subscription {}", symbols, sessionId);
         } catch (Exception e) {
             log.error("Error removing symbols from subscription {}", sessionId, e);
-            broadcastService.sendSubscriptionError(sessionId, "Failed to remove symbols");
+            broadcastMarketDataUseCase.sendSubscriptionError(sessionId, "Failed to remove symbols");
         }
     }
 }

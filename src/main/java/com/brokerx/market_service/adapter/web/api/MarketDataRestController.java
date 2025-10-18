@@ -1,6 +1,6 @@
 package com.brokerx.market_service.adapter.web.api;
 
-import com.brokerx.market_service.application.service.MarketDataSimulationService;
+import com.brokerx.market_service.application.port.in.GetMarketDataUseCase;
 import com.brokerx.market_service.domain.model.MarketData;
 
 import lombok.RequiredArgsConstructor;
@@ -11,21 +11,22 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * Rest Controller for accessing market data and system health information
+ * REST Controller for accessing market data and system health information
+ * Uses hexagonal architecture - depends on use case ports
  */
 @RestController
-@RequestMapping("/api/market")
+@RequestMapping("/api/v1/market")
 @RequiredArgsConstructor
 public class MarketDataRestController {
 
-    private final MarketDataSimulationService simulationService;
+    private final GetMarketDataUseCase getMarketDataUseCase;
 
     /**
      * Fetches all current market data
      */
     @GetMapping("/data")
     public ResponseEntity<Map<String, MarketData>> getAllMarketData() {
-        Map<String, MarketData> marketData = simulationService.getAllMarketData();
+        Map<String, MarketData> marketData = getMarketDataUseCase.getAllMarketData();
         return ResponseEntity.ok(marketData);
     }
 
@@ -34,7 +35,7 @@ public class MarketDataRestController {
      */
     @GetMapping("/data/{symbol}")
     public ResponseEntity<MarketData> getMarketData(@PathVariable String symbol) {
-        MarketData marketData = simulationService.getMarketData(symbol.toUpperCase());
+        MarketData marketData = getMarketDataUseCase.getMarketData(symbol.toUpperCase());
 
         if (marketData == null) {
             return ResponseEntity.notFound().build();
@@ -48,7 +49,7 @@ public class MarketDataRestController {
      */
     @GetMapping("/symbols")
     public ResponseEntity<Map<String, Object>> getAvailableSymbols() {
-        Map<String, MarketData> allData = simulationService.getAllMarketData();
+        Map<String, MarketData> allData = getMarketDataUseCase.getAllMarketData();
         return ResponseEntity.ok(Map.of(
                 "symbols", allData.keySet(),
                 "count", allData.size()));

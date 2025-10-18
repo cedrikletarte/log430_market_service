@@ -2,6 +2,9 @@ package com.brokerx.market_service.application.service;
 
 import com.brokerx.market_service.adapter.web.dto.MarketDataDto;
 import com.brokerx.market_service.adapter.web.dto.SubscriptionResponseDto;
+import com.brokerx.market_service.application.port.in.BroadcastMarketDataUseCase;
+import com.brokerx.market_service.application.port.in.GetMarketDataUseCase;
+import com.brokerx.market_service.application.port.in.ManageSubscriptionUseCase;
 import com.brokerx.market_service.domain.model.MarketData;
 
 import jakarta.annotation.PostConstruct;
@@ -23,16 +26,17 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * Service responsible for broadcasting market data to subscribed clients
+ * Implements hexagonal architecture with use case ports
  */
 @Service
 @RequiredArgsConstructor
-public class MarketDataBroadcastService {
+public class MarketDataBroadcastService implements BroadcastMarketDataUseCase {
 
     private static final Logger logger = LogManager.getLogger(MarketDataBroadcastService.class);
 
     private final SimpMessagingTemplate messagingTemplate;
-    private final MarketDataSimulationService simulationService;
-    private final MarketSubscriptionService subscriptionService;
+    private final GetMarketDataUseCase getMarketDataUseCase;
+    private final ManageSubscriptionUseCase manageSubscriptionUseCase;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
     @PostConstruct
@@ -48,7 +52,7 @@ public class MarketDataBroadcastService {
      */
     private void startSynchronizedBroadcasting() {
         scheduler.scheduleAtFixedRate(() -> {
-            var allMarketData = simulationService.getAllMarketData();
+            var allMarketData = getMarketDataUseCase.getAllMarketData();
             if (allMarketData.isEmpty()) {
                 return;
             }
@@ -65,7 +69,7 @@ public class MarketDataBroadcastService {
 
             // Broadcast per-symbol only to those with subscribers, with the same timestamp
             marketDataDtos.forEach((symbol, dto) -> {
-                Set<String> subscribers = subscriptionService.getSubscribersForSymbol(symbol);
+                Set<String> subscribers = manageSubscriptionUseCase.getSubscribersForSymbol(symbol);
                 if (!subscribers.isEmpty()) {
                     SubscriptionResponseDto response = SubscriptionResponseDto.builder()
                             .type("market_data")
@@ -94,14 +98,13 @@ public class MarketDataBroadcastService {
      * Starts the task of cleaning up expired subscriptions
      */
     private void startCleanupTask() {
-        scheduler.scheduleAtFixedRate(subscriptionService::cleanupExpiredSubscriptions, 60000, 60000,
-                TimeUnit.MILLISECONDS);
-        logger.info("Subscription cleanup task started");
+        scheduler.scheduleAtFixedRate(() -> {
+            manageSubscriptionUseCase.cleanupExpiredSubscriptions();
+        }, 60, 60, TimeUnit.SECONDS);
+        logger.info("Started subscription cleanup task");
     }
 
-    /**
-     * Sends a successful subscription response
-     */
+    @Override
     public void sendSubscriptionSuccess(String sessionId, Set<String> symbols) {
         SubscriptionResponseDto response = SubscriptionResponseDto.builder()
                 .type("subscription_success")
@@ -125,54 +128,6 @@ public class MarketDataBroadcastService {
 
         messagingTemplate.convertAndSendToUser(sessionId, "/queue/subscription", response);
         logger.warn("Sent subscription error to session: {} - {}", sessionId, errorMessage);
-    }
-
-    /**
-     * Sends a general error message
-     */
-    public void sendError(String sessionId, String errorMessage) {
-        SubscriptionResponseDto response = SubscriptionResponseDto.builder()
-                .type("error")
-                .message(errorMessage)
-                .timestamp(LocalDateTime.now().toString())
-                .build();
-
-        messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", response);
-        logger.error("Sent error to session: {} - {}", sessionId, errorMessage);
-    }
-
-    /**
-     * Broadcasts a degraded mode data message
-     */
-    public void broadcastDegradedMode(String symbol) {
-        MarketData marketData = simulationService.getMarketData(symbol);
-        if (marketData != null) {
-            MarketDataDto degradedData = convertToDto(marketData, "delayed");
-
-            SubscriptionResponseDto response = SubscriptionResponseDto.builder()
-                    .type("market_data")
-                    .data(degradedData)
-                    .message("Data is in degraded mode - less frequent updates")
-                    .timestamp(LocalDateTime.now().toString())
-                    .build();
-
-            messagingTemplate.convertAndSend("/topic/market/" + symbol, response);
-            logger.warn("Broadcasted degraded mode data for symbol: {}", symbol);
-        }
-    }
-
-    /**
-     * Broadcasts a stale data alert
-     */
-    public void broadcastStaleDataAlert(String symbol) {
-        SubscriptionResponseDto response = SubscriptionResponseDto.builder()
-                .type("stale_data_alert")
-                .message("Market data for " + symbol + " may be delayed or stale")
-                .timestamp(LocalDateTime.now().toString())
-                .build();
-
-        messagingTemplate.convertAndSend("/topic/market/" + symbol, response);
-        logger.warn("Broadcasted stale data alert for symbol: {}", symbol);
     }
 
     /**
