@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 
 /**
  * Service for managing market data subscriptions
- * Implements hexagonal architecture with use case ports
  */
 @Service
 @RequiredArgsConstructor

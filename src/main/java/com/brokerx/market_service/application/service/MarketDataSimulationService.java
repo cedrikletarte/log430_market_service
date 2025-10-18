@@ -27,7 +27,6 @@ import org.springframework.stereotype.Service;
 
 /**
  * Service responsible for simulating market data
- * Implements hexagonal architecture with use case ports
  */
 @Service
 public class MarketDataSimulationService implements GetMarketDataUseCase {

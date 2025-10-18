@@ -39,7 +39,7 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
                 
-        // Extraire les headers ajoutés par le Gateway
+        // Extract headers
         String userId = request.getHeader(USER_ID_HEADER);
         String email = request.getHeader(USER_EMAIL_HEADER);
         String role = request.getHeader(USER_ROLE_HEADER);
@@ -51,19 +51,19 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Si les headers sont présents, le Gateway a validé le JWT
+        // If headers are present, the Gateway has validated the JWT
         if (userId != null && email != null && role != null) {
             
-            // Créer une authentification basée sur les headers du Gateway
+            // Create authentication token
             var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
             
             var authentication = new UsernamePasswordAuthenticationToken(
-                userId,  // Principal = userId (ce que le contrôleur attend)
-                null,   // Pas de credentials nécessaires
+                userId,  // Principal = userId
+                null,   // No credentials needed
                 authorities
             );
             
-            // Ajouter l'email comme détail supplémentaire
+            // Add email as additional detail
             authentication.setDetails(Map.of("userId", userId, "email", email));
             
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -82,11 +82,11 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
         // don't filter public paths and internal service-to-service endpoints
         return path.startsWith("/v3/api-docs") ||
                path.startsWith("/swagger-ui") ||
-               path.startsWith("/ws/market") ||  // Exclure tous les endpoints WebSocket/SockJS
+               path.startsWith("/ws/market") ||  // Exclude all WebSocket/SockJS endpoints
                path.startsWith("/topic/market") ||
                path.startsWith("/actuator/health") ||
                path.startsWith("/actuator/prometheus") ||
-               path.startsWith("/internal");     // Exclure les endpoints internes (service-to-service)
+               path.startsWith("/internal");     // Exclude internal service-to-service endpoints
     }
 
     private boolean validateSignature(String signature, String userId, String email, String role) {

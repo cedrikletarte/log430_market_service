@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 /**
  * Service for managing user quotas and rate limiting
- *
  */
 @Service
 public class QuotaAndRateLimitService {

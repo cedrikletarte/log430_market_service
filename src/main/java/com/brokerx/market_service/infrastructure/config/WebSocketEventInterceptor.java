@@ -89,7 +89,6 @@ public class WebSocketEventInterceptor implements WebSocketMessageBrokerConfigur
 
     /**
      * Handles JWT authentication for WebSocket connections
-     * @return true if authentication successful, false otherwise
      */
     private boolean handleAuthentication(StompHeaderAccessor accessor) {
         try {
