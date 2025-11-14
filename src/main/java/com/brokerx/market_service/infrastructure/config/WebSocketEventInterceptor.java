@@ -1,11 +1,8 @@
 package com.brokerx.market_service.infrastructure.config;
 
-import com.brokerx.market_service.application.service.MarketSubscriptionService;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -26,15 +23,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * WebSocket channel interceptor to handle authentication, connection, disconnection, 
- * subscription, and unsubscription events for market data
+ * WebSocketEventInterceptor intercepts WebSocket events to handle authentication
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class WebSocketEventInterceptor implements ChannelInterceptor {
-
-    private final MarketSubscriptionService subscriptionService;
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -138,8 +131,7 @@ public class WebSocketEventInterceptor implements ChannelInterceptor {
         // Store active session
         activeSessions.put(sessionId, userId);
 
-        // Connection statistics
-        logConnectionStats();
+        log.info("Active WebSocket connections: {}", activeSessions.size());
     }
 
     /**
@@ -149,16 +141,7 @@ public class WebSocketEventInterceptor implements ChannelInterceptor {
         String userId = activeSessions.remove(sessionId);
         log.info("WebSocket disconnected - Session: {}, User: {}", sessionId, userId);
 
-        try {
-            // Clean up subscription on disconnect
-            subscriptionService.removeSubscription(sessionId);
-            log.info("Cleaned up subscription for disconnected session: {}", sessionId);
-        } catch (Exception e) {
-            log.error("Error cleaning up subscription for session: {}", sessionId, e);
-        }
-
-        // Connection statistics
-        logConnectionStats();
+        log.info("Active WebSocket connections: {}", activeSessions.size());
     }
 
     /**
@@ -168,9 +151,6 @@ public class WebSocketEventInterceptor implements ChannelInterceptor {
         String destination = accessor.getDestination();
         String userId = activeSessions.get(sessionId);
         log.debug("Session {} (User: {}) subscribed to: {}", sessionId, userId, destination);
-
-        // Update subscription activity
-        subscriptionService.updateActivity(sessionId);
     }
 
     /**
@@ -180,15 +160,6 @@ public class WebSocketEventInterceptor implements ChannelInterceptor {
         String destination = accessor.getDestination();
         String userId = activeSessions.get(sessionId);
         log.debug("Session {} (User: {}) unsubscribed from: {}", sessionId, userId, destination);
-    }
-
-    /**
-     * Logs connection statistics
-     */
-    private void logConnectionStats() {
-        int activeConnections = activeSessions.size();
-        int activeSubscriptions = subscriptionService.getActiveSubscriptionsCount();
-        log.info("Active WebSocket connections: {}, Active subscriptions: {}", activeConnections, activeSubscriptions);
     }
 
     /**

@@ -1,6 +1,6 @@
 package com.brokerx.market_service.adapter.web.api;
 
-import com.brokerx.market_service.application.port.in.GetMarketDataUseCase;
+import com.brokerx.market_service.application.port.in.useCase.MarketUseCase;
 import com.brokerx.market_service.domain.model.MarketData;
 
 import lombok.RequiredArgsConstructor;
@@ -11,22 +11,21 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * REST Controller for accessing market data and system health information
- * Uses hexagonal architecture - depends on use case ports
+ * REST Controller for accessing market data
  */
 @RestController
 @RequestMapping("/api/v1/market")
 @RequiredArgsConstructor
 public class MarketDataRestController {
 
-    private final GetMarketDataUseCase getMarketDataUseCase;
+    private final MarketUseCase marketUseCase;
 
     /**
      * Fetches all current market data
      */
     @GetMapping("/data")
     public ResponseEntity<Map<String, MarketData>> getAllMarketData() {
-        Map<String, MarketData> marketData = getMarketDataUseCase.getAllMarketData();
+        Map<String, MarketData> marketData = marketUseCase.getAllMarketData();
         return ResponseEntity.ok(marketData);
     }
 
@@ -35,7 +34,7 @@ public class MarketDataRestController {
      */
     @GetMapping("/data/{symbol}")
     public ResponseEntity<MarketData> getMarketData(@PathVariable String symbol) {
-        MarketData marketData = getMarketDataUseCase.getMarketData(symbol.toUpperCase());
+        MarketData marketData = marketUseCase.getMarketData(symbol.toUpperCase());
 
         if (marketData == null) {
             return ResponseEntity.notFound().build();
@@ -49,7 +48,7 @@ public class MarketDataRestController {
      */
     @GetMapping("/symbols")
     public ResponseEntity<Map<String, Object>> getAvailableSymbols() {
-        Map<String, MarketData> allData = getMarketDataUseCase.getAllMarketData();
+        Map<String, MarketData> allData = marketUseCase.getAllMarketData();
         return ResponseEntity.ok(Map.of(
                 "symbols", allData.keySet(),
                 "count", allData.size()));

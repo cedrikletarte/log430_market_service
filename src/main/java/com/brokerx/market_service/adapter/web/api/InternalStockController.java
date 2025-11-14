@@ -1,6 +1,6 @@
 package com.brokerx.market_service.adapter.web.api;
 
-import com.brokerx.market_service.application.service.MarketDataSimulationService;
+import com.brokerx.market_service.application.service.MarketDataService;
 import com.brokerx.market_service.domain.model.MarketData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ import com.brokerx.market_service.adapter.web.dto.StockResponse;
 @RequiredArgsConstructor
 public class InternalStockController {
 
-    private final MarketDataSimulationService marketDataSimulationService;
+    private final MarketDataService marketDataService;
 
     /**
      * Validate that a stock symbol exists and return its information.
@@ -30,7 +30,7 @@ public class InternalStockController {
     public ResponseEntity<StockResponse> validateStock(@PathVariable String symbol) {
         log.debug("Internal request: Validating stock symbol: {}", symbol);
         
-        MarketData marketData = marketDataSimulationService.getMarketData(symbol);
+        MarketData marketData = marketDataService.getMarketData(symbol);
         
         if (marketData == null) {
             log.warn("Stock symbol not found: {}", symbol);
@@ -52,7 +52,7 @@ public class InternalStockController {
     public ResponseEntity<StockResponse> getStockById(@PathVariable Long stockId) {
         log.debug("Internal request: Getting stock by id: {}", stockId);
         
-        MarketData marketData = marketDataSimulationService.getMarketDataById(stockId);
+        MarketData marketData = marketDataService.getMarketDataById(stockId);
         
         if (marketData == null) {
             log.warn("Stock id not found: {}", stockId);
