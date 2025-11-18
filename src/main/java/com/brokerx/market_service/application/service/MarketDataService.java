@@ -30,9 +30,7 @@ import org.springframework.stereotype.Service;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-/**
- * MarketDataService handles market data simulation and broadcasting
- */
+/* MarketDataService handles market data simulation and broadcasting */
 @Service
 @RequiredArgsConstructor
 public class MarketDataService implements MarketUseCase {
@@ -48,15 +46,14 @@ public class MarketDataService implements MarketUseCase {
     @Value("${market.simulation.volatility:0.02}")
     private double volatility;
 
+    /* Initializes market data and starts periodic updates */
     @PostConstruct
     public void initialize() {
         loadInitialData();
         logger.info("Market data service initialized - simulating and broadcasting every 5 seconds");
     }
 
-    /**
-     * Loads initial market data from market.json
-     */
+    /* Loads initial market data from market.json */
     private void loadInitialData() {
         try {
             ClassPathResource resource = new ClassPathResource("market.json");
@@ -129,9 +126,7 @@ public class MarketDataService implements MarketUseCase {
         logger.debug("Updated and broadcasted {} symbols", marketDataDtos.size());
     }
 
-    /**
-     * Simulates realistic price changes for a symbol
-     */
+    /* Simulates realistic price changes for a symbol */
     private void simulatePriceChange(MarketData data) {
         double change = random.nextGaussian() * volatility;
 
@@ -168,9 +163,7 @@ public class MarketDataService implements MarketUseCase {
                 .build();
     }
 
-    /**
-     * Retrieves the current market data by ID
-     */
+    /* Retrieves the current market data by ID */
     public MarketData getMarketDataById(Long id) {
         return marketData.values().stream()
                 .filter(md -> md.getId().equals(id))
@@ -178,15 +171,17 @@ public class MarketDataService implements MarketUseCase {
                 .orElse(null);
     }
 
+    /* Retrieves the current market data by symbol */
     public MarketData getMarketData(String symbol) {
         return marketData.get(symbol.toUpperCase());
     }
 
-
+    /* Retrieves all current market data as a map */
     public Map<String, MarketData> getAllMarketData() {
         return Map.copyOf(marketData);
     }
 
+    /* Checks if a stock symbol is available */
     public boolean isSymbolAvailable(String symbol) {
         return marketData.containsKey(symbol.toUpperCase());
     }

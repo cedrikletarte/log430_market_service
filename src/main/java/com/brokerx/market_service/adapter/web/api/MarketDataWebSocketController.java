@@ -6,10 +6,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
 
-/**
- * Simplified WebSocket Controller for market data
- * Clients subscribe directly to STOMP topics - Spring handles the rest
- */
+/* Clients subscribe directly to STOMP topics - Spring handles the rest */
 @Slf4j
 @Controller
 public class MarketDataWebSocketController {

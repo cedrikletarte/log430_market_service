@@ -33,6 +33,7 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
     private static final String USER_ROLE_HEADER = "X-User-Role";
     private static final String SIGNATURE_HEADER = "X-Gateway-Secret";
 
+    /* Filter to authenticate requests based on Gateway headers */
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -75,6 +76,7 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /* Determine if the filter should not apply to the request */
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
         String path = request.getServletPath();
@@ -89,6 +91,7 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
                path.startsWith("/internal");     // Exclude internal service-to-service endpoints
     }
 
+    /* Validates the gateway signature */
     private boolean validateSignature(String signature, String userId, String email, String role) {
         try {
             Claims claims = Jwts.parser()

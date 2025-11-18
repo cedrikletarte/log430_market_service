@@ -10,9 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * REST Controller for accessing market data
- */
+/* REST Controller for accessing market data */
 @RestController
 @RequestMapping("/api/v1/market")
 @RequiredArgsConstructor
@@ -20,18 +18,14 @@ public class MarketDataRestController {
 
     private final MarketUseCase marketUseCase;
 
-    /**
-     * Fetches all current market data
-     */
+    /* Fetches all current market data */
     @GetMapping("/data")
     public ResponseEntity<Map<String, MarketData>> getAllMarketData() {
         Map<String, MarketData> marketData = marketUseCase.getAllMarketData();
         return ResponseEntity.ok(marketData);
     }
 
-    /**
-     * Fetches market data for a specific symbol
-     */
+    /* Fetches market data for a specific symbol */
     @GetMapping("/data/{symbol}")
     public ResponseEntity<MarketData> getMarketData(@PathVariable String symbol) {
         MarketData marketData = marketUseCase.getMarketData(symbol.toUpperCase());
@@ -43,9 +37,7 @@ public class MarketDataRestController {
         return ResponseEntity.ok(marketData);
     }
 
-    /**
-     * Fetches the list of all available symbols
-     */
+    /* Fetches the list of all available symbols */
     @GetMapping("/symbols")
     public ResponseEntity<Map<String, Object>> getAvailableSymbols() {
         Map<String, MarketData> allData = marketUseCase.getAllMarketData();

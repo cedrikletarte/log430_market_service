@@ -23,9 +23,7 @@ public class InternalStockController {
 
     private final MarketDataService marketDataService;
 
-    /**
-     * Validate that a stock symbol exists and return its information.
-     */
+    /* Validate that a stock symbol exists and return its information. */
     @GetMapping("/{symbol}")
     public ResponseEntity<StockResponse> validateStock(@PathVariable String symbol) {
         log.debug("Internal request: Validating stock symbol: {}", symbol);
@@ -45,9 +43,7 @@ public class InternalStockController {
         ));
     }
 
-    /**
-     * Retrieved by other microservices to get stock information.
-     */
+    /* Retrieved by other microservices to get stock information. */
     @GetMapping("/id/{stockId}")
     public ResponseEntity<StockResponse> getStockById(@PathVariable Long stockId) {
         log.debug("Internal request: Getting stock by id: {}", stockId);

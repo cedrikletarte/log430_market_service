@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/* Domain Model for Market Data */
 @Data
 @Builder
 @NoArgsConstructor

@@ -20,6 +20,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketEventInterceptor webSocketEventInterceptor;
 
+    /* Configures the message broker for WebSocket communication */
     @Override
     public void configureMessageBroker(@NonNull MessageBrokerRegistry config) {
         // Enable simple broker for sending messages to clients
@@ -32,6 +33,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         config.setUserDestinationPrefix("/user");
     }
 
+    /* Registers the WebSocket endpoint for client connections */
     @Override
     public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
         // WebSocket endpoint for clients to connect to
@@ -39,6 +41,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns("*");
     }
 
+    /* Configures the client inbound channel to add the WebSocket event interceptor */
     @Override
     public void configureClientInboundChannel(@NonNull ChannelRegistration registration) {
         // Register the interceptor for authentication and event handling

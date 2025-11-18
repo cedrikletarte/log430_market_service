@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
+/* Data Transfer Object for Market Data */
 @Data
 @Builder
 @NoArgsConstructor
@@ -23,5 +25,5 @@ public class MarketDataDto {
     private BigDecimal midPrice;
     private Long volume;
     private LocalDateTime timestamp;
-    private String status; // "live", "delayed", "stale"
+    private String status;
 }

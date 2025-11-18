@@ -30,6 +30,7 @@ public class ServiceAuthenticationFilter extends OncePerRequestFilter {
     private static final String SERVICE_TOKEN_HEADER = "X-Service-Token";
     private static final long MAX_SIGNATURE_AGE_MS = 5000; // 5 seconds
 
+    /* Filter to authenticate requests to internal endpoints */
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -54,6 +55,7 @@ public class ServiceAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /* Determine if the filter should not apply to the request */
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
         String path = request.getServletPath();
@@ -100,6 +102,7 @@ public class ServiceAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
+    /* Sends a JSON error response */
     private void sendErrorResponse(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json");

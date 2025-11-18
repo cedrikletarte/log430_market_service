@@ -12,10 +12,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Security configuration for the Market Service
- *
- */
+/* Security configuration for the Market Service */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -24,11 +21,13 @@ public class SecurityConfig {
     private final GatewayHeaderAuthenticationFilter gatewayHeaderAuthenticationFilter;
     private final ServiceAuthenticationFilter serviceAuthenticationFilter;
 
+    /* Provides the AuthenticationManager bean */
     @Bean
     AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
 
+    /* Configures the security filter chain */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http

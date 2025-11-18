@@ -5,14 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/* DTO for WebSocket Subscription Responses */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class SubscriptionResponseDto {
 
-    private String type; // "subscription_success", "subscription_error", "market_data", "error"
+    private String type;
     private String message;
-    private Object data; // Can contain MarketDataDto or other information
+    private Object data;
     private String timestamp;
 }
